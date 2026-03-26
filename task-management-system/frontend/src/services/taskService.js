@@ -4,52 +4,43 @@
  * Centralised API layer for all task-related HTTP requests.
  * Uses the Fetch API (no extra dependencies needed).
  * The proxy in package.json forwards /api/* to http://localhost:5000.
+ *
+ * All functions use authFetch so the JWT is automatically included.
  */
 
-const BASE_URL = "/api/tasks";
+import { authFetch } from "./authService";
 
-// ── Helper ────────────────────────────────────────────────────────────────────
-async function handleResponse(res) {
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `HTTP error ${res.status}`);
-  }
-  return data;
-}
+const BASE_URL = "/api/tasks";
 
 // ── API Functions ─────────────────────────────────────────────────────────────
 
 /**
- * Fetch all tasks from the backend.
+ * Fetch all tasks belonging to the authenticated user.
  * @returns {Promise<Array>} Array of task objects.
  */
 export async function getAllTasks() {
-  const res = await fetch(BASE_URL);
-  return handleResponse(res);
+  return authFetch(BASE_URL);
 }
 
 /**
- * Fetch tasks filtered by status.
+ * Fetch tasks filtered by status for the authenticated user.
  * @param {"pending"|"completed"} status
  * @returns {Promise<Array>}
  */
 export async function getTasksByStatus(status) {
-  const res = await fetch(`/api/tasks/filter/${status}`);
-  return handleResponse(res);
+  return authFetch(`/api/tasks/filter/${status}`);
 }
 
 /**
- * Create a new task.
+ * Create a new task for the authenticated user.
  * @param {{ title: string, description?: string, priority?: string, due_date?: string }} taskData
  * @returns {Promise<Object>} The created task.
  */
 export async function createTask(taskData) {
-  const res = await fetch(BASE_URL, {
+  return authFetch(BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(taskData),
   });
-  return handleResponse(res);
 }
 
 /**
@@ -59,12 +50,10 @@ export async function createTask(taskData) {
  * @returns {Promise<Object>} The updated task.
  */
 export async function updateTask(id, updates) {
-  const res = await fetch(`${BASE_URL}/${id}`, {
+  return authFetch(`${BASE_URL}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updates),
   });
-  return handleResponse(res);
 }
 
 /**
@@ -73,16 +62,14 @@ export async function updateTask(id, updates) {
  * @returns {Promise<Object>} The updated task.
  */
 export async function completeTask(id) {
-  const res = await fetch(`${BASE_URL}/${id}/complete`, { method: "PATCH" });
-  return handleResponse(res);
+  return authFetch(`${BASE_URL}/${id}/complete`, { method: "PATCH" });
 }
 
 /**
  * Delete a task permanently.
  * @param {string} id  MongoDB ObjectId string.
- * @returns {Promise<Object>} Success message.
+ * @returns {Promise<void>}
  */
 export async function deleteTask(id) {
-  const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
-  return handleResponse(res);
+  await authFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
 }

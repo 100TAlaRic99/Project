@@ -17,7 +17,7 @@ export function setStoredUser(user)     { localStorage.setItem(USER_KEY, JSON.st
 export function isAuthenticated()       { return !!getToken(); }
 
 // ── Fetch wrapper that injects the Bearer token ───────────────────────────────
-async function authFetch(url, options = {}) {
+export async function authFetch(url, options = {}) {
   const token = getToken();
   const headers = {
     "Content-Type": "application/json",

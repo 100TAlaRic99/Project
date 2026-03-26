@@ -94,23 +94,32 @@ def serialize_task(task):
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/tasks", methods=["GET"])
+@token_required
 def get_all_tasks():
     """
-    Retrieve all tasks from the database.
-    Returns a JSON list of task objects sorted by creation date (newest first).
+    Retrieve all tasks belonging to the authenticated user,
+    sorted by creation date (newest first).
     """
-    tasks = list(tasks_collection.find().sort("created_at", -1))
+    tasks = list(
+        tasks_collection
+            .find({"user_id": request.current_user["_id"]})
+            .sort("created_at", -1)
+    )
     return jsonify([serialize_task(t) for t in tasks]), 200
 
 
 @app.route("/api/tasks/<task_id>", methods=["GET"])
+@token_required
 def get_task(task_id):
     """
-    Retrieve a single task by its MongoDB ObjectId.
+    Retrieve a single task belonging to the authenticated user.
     Returns 404 if the task does not exist.
     """
     try:
-        task = tasks_collection.find_one({"_id": ObjectId(task_id)})
+        task = tasks_collection.find_one({
+            "_id": ObjectId(task_id),
+            "user_id": request.current_user["_id"],
+        })
     except Exception:
         return jsonify({"error": "Invalid task ID format"}), 400
 
@@ -121,9 +130,10 @@ def get_task(task_id):
 
 
 @app.route("/api/tasks", methods=["POST"])
+@token_required
 def create_task():
     """
-    Create a new task.
+    Create a new task belonging to the authenticated user.
     Expected JSON body:
       - title       (required) : string
       - description (optional) : string
@@ -137,12 +147,13 @@ def create_task():
         return jsonify({"error": "Task title is required"}), 400
 
     new_task = {
-        "title": data["title"].strip(),
+        "user_id":     request.current_user["_id"],
+        "title":       data["title"].strip(),
         "description": data.get("description", "").strip(),
-        "priority": data.get("priority", "medium"),
-        "status": "pending",
-        "due_date": data.get("due_date", ""),
-        "created_at": datetime.utcnow(),
+        "priority":    data.get("priority", "medium"),
+        "status":      "pending",
+        "due_date":    data.get("due_date", ""),
+        "created_at":  datetime.utcnow(),
     }
 
     result = tasks_collection.insert_one(new_task)
@@ -151,9 +162,10 @@ def create_task():
 
 
 @app.route("/api/tasks/<task_id>", methods=["PUT"])
+@token_required
 def update_task(task_id):
     """
-    Update an existing task by its MongoDB ObjectId.
+    Update an existing task belonging to the authenticated user.
     Accepts any subset of the task fields in the JSON body.
     Returns the updated task or 404 if not found.
     """
@@ -173,7 +185,7 @@ def update_task(task_id):
         return jsonify({"error": "No valid fields to update"}), 400
 
     result = tasks_collection.find_one_and_update(
-        {"_id": oid},
+        {"_id": oid, "user_id": request.current_user["_id"]},
         {"$set": update_data},
         return_document=True,
     )
@@ -185,9 +197,10 @@ def update_task(task_id):
 
 
 @app.route("/api/tasks/<task_id>/complete", methods=["PATCH"])
+@token_required
 def complete_task(task_id):
     """
-    Mark a task as 'completed'.
+    Mark a task as 'completed'. Only works on tasks owned by the authenticated user.
     This is a convenience endpoint — equivalent to PUT with status='completed'.
     Returns the updated task or 404 if not found.
     """
@@ -197,7 +210,7 @@ def complete_task(task_id):
         return jsonify({"error": "Invalid task ID format"}), 400
 
     result = tasks_collection.find_one_and_update(
-        {"_id": oid},
+        {"_id": oid, "user_id": request.current_user["_id"]},
         {"$set": {"status": "completed"}},
         return_document=True,
     )
@@ -209,9 +222,10 @@ def complete_task(task_id):
 
 
 @app.route("/api/tasks/<task_id>", methods=["DELETE"])
+@token_required
 def delete_task(task_id):
     """
-    Permanently delete a task by its MongoDB ObjectId.
+    Permanently delete a task owned by the authenticated user.
     Returns a success message or 404 if not found.
     """
     try:
@@ -219,7 +233,10 @@ def delete_task(task_id):
     except Exception:
         return jsonify({"error": "Invalid task ID format"}), 400
 
-    result = tasks_collection.delete_one({"_id": oid})
+    result = tasks_collection.delete_one({
+        "_id": oid,
+        "user_id": request.current_user["_id"],
+    })
 
     if result.deleted_count == 0:
         return jsonify({"error": "Task not found"}), 404
@@ -228,16 +245,21 @@ def delete_task(task_id):
 
 
 @app.route("/api/tasks/filter/<status>", methods=["GET"])
+@token_required
 def filter_tasks_by_status(status):
     """
-    Filter tasks by status: 'pending' or 'completed'.
+    Filter tasks by status for the authenticated user: 'pending' or 'completed'.
     Returns a JSON list of matching tasks.
     """
     valid_statuses = {"pending", "completed"}
     if status not in valid_statuses:
         return jsonify({"error": f"Invalid status. Use: {', '.join(valid_statuses)}"}), 400
 
-    tasks = list(tasks_collection.find({"status": status}).sort("created_at", -1))
+    tasks = list(
+        tasks_collection
+            .find({"status": status, "user_id": request.current_user["_id"]})
+            .sort("created_at", -1)
+    )
     return jsonify([serialize_task(t) for t in tasks]), 200
 
 
