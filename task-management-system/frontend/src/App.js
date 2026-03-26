@@ -6,6 +6,7 @@ import FilterBar    from "./components/FilterBar";
 import Toast        from "./components/Toast";
 import LoginPage    from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
+import Dashboard    from "./components/Dashboard";
 import {
   getAllTasks,
   createTask,
@@ -37,6 +38,7 @@ function App() {
   const [loading, setLoading]   = useState(false);
   const [fetching, setFetching] = useState(true);
   const [toast, setToast]       = useState(null);   // { message, type }
+  const [view, setView]         = useState("dashboard"); // "dashboard" | "tasks"
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const showToast = (message, type = "success") => setToast({ message, type });
@@ -53,6 +55,7 @@ function App() {
     setUser(null);
     setTasks([]);
     setFetching(true);
+    setView("dashboard");
   };
 
   // ── Fetch all tasks when user logs in ─────────────────────────────────────
@@ -157,47 +160,60 @@ function App() {
         totalCount={counts.all}
         user={user}
         onLogout={handleLogout}
+        onGoDashboard={() => setView("dashboard")}
+        onGoTasks={() => setView("tasks")}
+        view={view}
       />
 
       <main className="app__main">
         <div className="app__container">
-          <div className="app__header">
-            <div>
-              <h1 className="app__title">My Tasks</h1>
-              <p className="app__subtitle">Manage your personal tasks</p>
-            </div>
-          </div>
-
-          <TaskForm onAdd={handleAdd} loading={loading} />
-
-          <FilterBar filter={filter} onChange={setFilter} counts={counts} />
-
-          {fetching ? (
-            <div className="app__loading">
-              <div className="spinner" />
-              <p>Loading tasks…</p>
-            </div>
-          ) : visibleTasks.length === 0 ? (
-            <div className="app__empty">
-              <span className="app__empty-icon">📋</span>
-              <p>
-                {filter === "all"
-                  ? "No tasks yet. Add your first task above!"
-                  : `No ${filter} tasks.`}
-              </p>
-            </div>
+          {view === "dashboard" ? (
+            <Dashboard
+              tasks={tasks}
+              user={user}
+              onNavigate={setView}
+            />
           ) : (
-            <div className="app__task-list">
-              {visibleTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onComplete={handleComplete}
-                  onDelete={handleDelete}
-                  onEdit={handleEdit}
-                />
-              ))}
-            </div>
+            <>
+              <div className="app__header">
+                <div>
+                  <h1 className="app__title">My Tasks</h1>
+                  <p className="app__subtitle">Manage your personal tasks</p>
+                </div>
+              </div>
+
+              <TaskForm onAdd={handleAdd} loading={loading} />
+
+              <FilterBar filter={filter} onChange={setFilter} counts={counts} />
+
+              {fetching ? (
+                <div className="app__loading">
+                  <div className="spinner" />
+                  <p>Loading tasks…</p>
+                </div>
+              ) : visibleTasks.length === 0 ? (
+                <div className="app__empty">
+                  <span className="app__empty-icon">📋</span>
+                  <p>
+                    {filter === "all"
+                      ? "No tasks yet. Add your first task above!"
+                      : `No ${filter} tasks.`}
+                  </p>
+                </div>
+              ) : (
+                <div className="app__task-list">
+                  {visibleTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onComplete={handleComplete}
+                      onDelete={handleDelete}
+                      onEdit={handleEdit}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
