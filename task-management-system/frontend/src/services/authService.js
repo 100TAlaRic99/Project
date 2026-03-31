@@ -7,6 +7,7 @@
 
 const TOKEN_KEY = "tm_token";
 const USER_KEY  = "tm_user";
+const API = process.env.REACT_APP_API_URL;
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 export function getToken()              { return localStorage.getItem(TOKEN_KEY); }
@@ -19,14 +20,20 @@ export function isAuthenticated()       { return !!getToken(); }
 // ── Fetch wrapper that injects the Bearer token ───────────────────────────────
 export async function authFetch(url, options = {}) {
   const token = getToken();
+
   const headers = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
-  const res = await fetch(url, { ...options, headers });
+
+  const fullUrl = `${API}${url}`;
+
+  const res = await fetch(fullUrl, { ...options, headers });
   const data = await res.json();
+
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
   return data;
 }
 
