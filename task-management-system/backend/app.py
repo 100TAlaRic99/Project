@@ -4,10 +4,13 @@ from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timedelta
 from functools import wraps
+from dotenv import load_dotenv
 import os
 import re
 import bcrypt
 import jwt
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -17,7 +20,9 @@ JWT_SECRET  = os.environ.get("JWT_SECRET", "change-me-in-production-secret-key")
 JWT_EXPIRES = int(os.environ.get("JWT_EXPIRES_HOURS", 24))   # hours
 
 # ─── MongoDB Connection ────────────────────────────────────────────────────────
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_URI = os.environ.get("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI is not set. Add it to your .env file.")
 client = MongoClient(MONGO_URI)
 db = client["TaskManagementSystem"]
 tasks_collection = db["tasks"]
