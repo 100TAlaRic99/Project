@@ -19,7 +19,7 @@ JWT_EXPIRES = int(os.environ.get("JWT_EXPIRES_HOURS", 24))   # hours
 # ─── MongoDB Connection ────────────────────────────────────────────────────────
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URI)
-db = client["task_management"]
+db = client["TaskManagementSystem"]
 tasks_collection = db["tasks"]
 users_collection = db["users"]
 
